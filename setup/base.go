@@ -26,6 +26,7 @@ import (
 	"github.com/matrix-org/dendrite/internal/caching"
 	"github.com/matrix-org/dendrite/internal/httputil"
 	"github.com/matrix-org/gomatrixserverlib"
+	"github.com/matrix-org/util"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -310,6 +311,18 @@ func (b *BaseDendrite) SetupAndServeHTTP(
 			Handler: h2c.NewHandler(internalRouter, internalH2S),
 		}
 	}
+
+	b.InternalAPIMux.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(200)
+	})
+
+	externalRouter.Handle("/health", httputil.MakeInternalAPI("Health", func(req *http.Request) util.JSONResponse {
+		return util.JSONResponse{
+			Code: http.StatusOK,
+			JSON: struct{}{},
+		}
+	}),
+	)
 
 	internalRouter.PathPrefix(httputil.InternalPathPrefix).Handler(b.InternalAPIMux)
 	if b.Cfg.Global.Metrics.Enabled {
